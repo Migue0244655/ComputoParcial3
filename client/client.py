@@ -6,6 +6,7 @@ import tkinter as tk
 # Configuración del servidor
 SERVER_HOST = "localhost"  # Cambiar a la dirección IP del servidor si es remoto
 SERVER_PORT = 5060
+BUFFER_SIZE = 1024
 
 # Inicializar Pygame
 pygame.init()
@@ -76,6 +77,43 @@ def chat_window(username, grupos):
             mensaje_formateado = f"Agregar Usuario a Grupo:{grupo_seleccionado}:{username}:{usuario}"
             enviar_mensaje_servidor(mensaje_formateado)
 
+    def actualizar():
+        # Solicitar el archivo BD.txt al servidor
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.connect((SERVER_HOST, SERVER_PORT))
+                s.sendall("Actualizar:".encode())
+
+                # Recibir la longitud del archivo
+                length_bytes = s.recv(4)
+                if not length_bytes:
+                    print("Error al recibir la longitud del archivo")
+                    return
+                length = int.from_bytes(length_bytes, byteorder='big')
+
+                # Recibir el contenido del archivo
+                data = b""
+                remaining = length
+                while remaining > 0:
+                    part = s.recv(min(BUFFER_SIZE, remaining))
+                    if not part:
+                        print("Error al recibir el contenido del archivo")
+                        break
+                    data += part
+                    remaining -= len(part)
+
+                content = data.decode('utf-8')
+                
+                for line in content.split('\n'):
+                    if line:
+                        colon_index = line.find(':')
+                        service = line[:colon_index].strip()
+                        message = line[colon_index+1:].strip()
+                        print(service, "\n")
+                        print(message, "\n")
+
+        except Exception as e:
+            print("Error al conectar al servidor:", e)
 
     ventana = tk.Tk()
     ventana.title("Aplicación de Mensajería")
@@ -105,6 +143,9 @@ def chat_window(username, grupos):
 
     boton_crear_grupo = tk.Button(ventana, text="Crear Grupo", command=crear_grupo)
     boton_crear_grupo.pack(side=tk.BOTTOM, fill=tk.X)
+
+    boton_actualizar = tk.Button(ventana, text="Actualizar", command=actualizar)
+    boton_actualizar.pack(side=tk.BOTTOM, fill=tk.X)
 
     for grupo in grupos.keys():
         lista_grupos.insert(tk.END, grupo)

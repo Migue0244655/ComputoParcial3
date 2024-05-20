@@ -1,0 +1,6 @@
+Nuevo Grupo:G1:user1
+Nuevo Grupo:G2:user1
+Agregar Usuario a Grupo:G2:user1:Regis
+Nuevo Mensaje:G2:user1:Holaaaaaaa
+Nuevo Grupo:h:user1
+Nuevo Grupo:cfvghbjnkm:user1
