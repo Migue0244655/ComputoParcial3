@@ -2,10 +2,12 @@ import pygame
 import socket
 import sys
 import tkinter as tk
+from tkinter import messagebox
 
 # Configuración del servidor
 SERVER_HOST = "localhost"  # Cambiar a la dirección IP del servidor si es remoto
 SERVER_PORT = 5060
+BUFFER_SIZE = 1024
 
 # Inicializar Pygame
 pygame.init()
@@ -26,6 +28,12 @@ pygame.display.set_caption("Autenticación de Usuario")
 font = pygame.font.SysFont(None, 30)
 small_font = pygame.font.SysFont(None, 20)
 
+coordinador = []
+users = []
+participantes = []
+
+name = ""
+
 def draw_text(text, font, color, surface, x, y):
     textobj = font.render(text, 1, color)
     textrect = textobj.get_rect()
@@ -37,11 +45,17 @@ def chat_window(username, grupos):
         mensaje = entrada_mensaje.get()
         grupo_seleccionado = lista_grupos.get(tk.ACTIVE)
         if grupo_seleccionado in grupos:
-            mensaje_formateado = f"{username}:{mensaje}"
-            grupos[grupo_seleccionado].append(mensaje_formateado)
-            actualizar_mensajes(grupo_seleccionado)
-            mensaje_formateado = f"Nuevo Mensaje:{grupo_seleccionado}:{username}:{mensaje}"
-            enviar_mensaje_servidor(mensaje_formateado)
+            elementos = lista_grupos.get(0, tk.END)
+            if grupo_seleccionado in elementos:
+                indice = elementos.index(grupo_seleccionado)
+                if name in participantes[indice]:
+                    mensaje_formateado = f"{username}:{mensaje}"
+                    grupos[grupo_seleccionado].append(mensaje_formateado)
+                    actualizar_mensajes(grupo_seleccionado)
+                    mensaje_formateado = f"Nuevo Mensaje:{grupo_seleccionado}:{username}:{mensaje}"
+                    enviar_mensaje_servidor(mensaje_formateado)
+                else:
+                    messagebox.showwarning("Accion no permitida", "No perteneces a este grupo.")
 
     def actualizar_mensajes(grupo):
         lista_mensajes.delete(0, tk.END)
@@ -52,12 +66,17 @@ def chat_window(username, grupos):
     def crear_grupo():
         nombre_grupo = entrada_grupo.get()
         if nombre_grupo:
-            lista_grupos.insert(tk.END, nombre_grupo)
-            grupos[nombre_grupo] = []
-            
-            # Enviar mensaje al servidor indicando que se creó un nuevo grupo
-            mensaje_servidor = f"Crear Grupo:{username}:{nombre_grupo}"
-            enviar_mensaje_servidor(mensaje_servidor)
+            # Obtener todos los elementos del Listbox
+            elementos = lista_grupos.get(0, tk.END)
+            if nombre_grupo not in elementos:
+                lista_grupos.insert(tk.END, nombre_grupo)
+                grupos[nombre_grupo] = []
+                coordinador.append(nombre_grupo)
+                # Enviar mensaje al servidor indicando que se creó un nuevo grupo
+                mensaje_servidor = f"Crear Grupo:{username}:{nombre_grupo}"
+                enviar_mensaje_servidor(mensaje_servidor)
+            else:
+                messagebox.showwarning("Nombre de grupo ocupado", "Intenta con otro nombre por favor.")
 
     def enviar_mensaje_servidor(mensaje):
         try:
@@ -72,10 +91,93 @@ def chat_window(username, grupos):
     def agregar_usuario_a_grupo():
         usuario = entrada_usuario.get()
         grupo_seleccionado = lista_grupos.get(tk.ACTIVE)
-        if grupo_seleccionado in grupos:
-            mensaje_formateado = f"Agregar Usuario a Grupo:{grupo_seleccionado}:{username}:{usuario}"
-            enviar_mensaje_servidor(mensaje_formateado)
+        if grupo_seleccionado in coordinador:
+            if usuario in users:
+                elementos = lista_grupos.get(0, tk.END)
+                if grupo_seleccionado in elementos:
+                    indice = elementos.index(grupo_seleccionado)
+                    if usuario not in participantes[indice]:
+                        if grupo_seleccionado in grupos:
+                            mensaje_formateado = f"Agregar Usuario a Grupo:{grupo_seleccionado}:{username}:{usuario}"
+                            enviar_mensaje_servidor(mensaje_formateado)
+                    else:
+                        messagebox.showwarning("Advertencia", "Este usuario ya pertenece de este grupo.")
+            else:
+                messagebox.showwarning("Advertencia", "El usuario no está logeado.")
+        else:
+            messagebox.showwarning("Advertencia", "No eres coordinador de este grupo.")
 
+    def actualizar():
+        global users
+        global participantes
+        global name
+        # Limpiar las listas de grupos y mensajes
+        lista_grupos.delete(0, tk.END)
+        lista_mensajes.delete(0, tk.END)
+        #grupos.clear()
+        # Solicitar el archivo BD.txt al servidor
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.connect((SERVER_HOST, SERVER_PORT))
+                s.sendall("Actualizar:".encode())
+
+                # Recibir la longitud del archivo
+                length_bytes = s.recv(4)
+                if not length_bytes:
+                    print("Error al recibir la longitud del archivo")
+                    return
+                length = int.from_bytes(length_bytes, byteorder='big')
+
+                # Recibir el contenido del archivo
+                data = b""
+                remaining = length
+                while remaining > 0:
+                    part = s.recv(min(BUFFER_SIZE, remaining))
+                    if not part:
+                        print("Error al recibir el contenido del archivo")
+                        break
+                    data += part
+                    remaining -= len(part)
+
+                content = data.decode('utf-8')
+                users = []
+                participantes = []
+                for line in content.split('\n'):
+                    if line:
+                        colon_index = line.find(':')
+                        service = line[:colon_index].strip()
+                        rest_of_line = line[colon_index+1:].strip()
+                        if(service == "Nuevo Grupo"):
+                            nombre_grupo2, user = [x.strip() for x in rest_of_line.split(':')]
+                            if nombre_grupo2:
+                                lista_grupos.insert(tk.END, nombre_grupo2)
+                                grupos[nombre_grupo2] = []
+                                participantes2 = []
+                                participantes2.append(user)
+                                participantes.append(participantes2)
+                        elif(service == "Nuevo Mensaje"):
+                            grupo_seleccionado2, user2, mensaje2 = [x.strip() for x in rest_of_line.split(':')]
+                            if grupo_seleccionado2 in grupos:
+                                elementos = lista_grupos.get(0, tk.END)
+                                if grupo_seleccionado2 in elementos:
+                                    indice = elementos.index(grupo_seleccionado2)
+                                    if name in participantes[indice]:
+                                        mensaje_formateado = f"{user2}:{mensaje2}"
+                                        grupos[grupo_seleccionado2].append(mensaje_formateado)
+                                        actualizar_mensajes(grupo_seleccionado2)
+                        elif(service == "Nuevo Usuario"):
+                            usuario = rest_of_line
+                            users.append(usuario)
+                        elif(service == "Agregar Usuario a Grupo"):
+                            nombre_grupo2, username2, usuario2 = [x.strip() for x in rest_of_line.split(':')]
+                            elementos = lista_grupos.get(0, tk.END)
+                            if nombre_grupo2 in elementos:
+                                indice = elementos.index(nombre_grupo2)
+                                participantes2 = participantes[indice]
+                                participantes2.append(usuario2)
+                                participantes[indice] = participantes2
+        except Exception as e:
+            print("Error al conectar al servidor:", e)
 
     ventana = tk.Tk()
     ventana.title("Aplicación de Mensajería")
@@ -106,6 +208,9 @@ def chat_window(username, grupos):
     boton_crear_grupo = tk.Button(ventana, text="Crear Grupo", command=crear_grupo)
     boton_crear_grupo.pack(side=tk.BOTTOM, fill=tk.X)
 
+    boton_actualizar = tk.Button(ventana, text="Actualizar", command=actualizar)
+    boton_actualizar.pack(side=tk.BOTTOM, fill=tk.X)
+
     for grupo in grupos.keys():
         lista_grupos.insert(tk.END, grupo)
 
@@ -120,6 +225,7 @@ def chat_window(username, grupos):
     ventana.mainloop()
 
 def main():
+    global name
     username = ""
     password = ""
     input_rect = pygame.Rect(200, 100, 250, 32)
@@ -127,6 +233,7 @@ def main():
     send_button_rect = pygame.Rect(200, 220, 100, 40)
     active_input = False
     active_password = False
+    
 
     while True:
         screen.fill(WHITE)
@@ -150,6 +257,7 @@ def main():
                             response = s.recv(1024).decode()
                             print("Respuesta del servidor:", response)
                             if response == "1":
+                                name = username
                                 chat_window(username, {})
                                 break
                     except Exception as e:
