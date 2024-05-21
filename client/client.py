@@ -6,6 +6,7 @@ import tkinter as tk
 # Configuración del servidor
 SERVER_HOST = "localhost"  # Cambiar a la dirección IP del servidor si es remoto
 SERVER_PORT = 5060
+BUFFER_SIZE = 1024
 
 # Inicializar Pygame
 pygame.init()
@@ -25,6 +26,8 @@ pygame.display.set_caption("Autenticación de Usuario")
 # Fuentes
 font = pygame.font.SysFont(None, 30)
 small_font = pygame.font.SysFont(None, 20)
+
+coordinador = []
 
 def draw_text(text, font, color, surface, x, y):
     textobj = font.render(text, 1, color)
@@ -54,7 +57,8 @@ def chat_window(username, grupos):
         if nombre_grupo:
             lista_grupos.insert(tk.END, nombre_grupo)
             grupos[nombre_grupo] = []
-            
+            coordinador.append(nombre_grupo)
+            print(coordinador)
             # Enviar mensaje al servidor indicando que se creó un nuevo grupo
             mensaje_servidor = f"Crear Grupo:{username}:{nombre_grupo}"
             enviar_mensaje_servidor(mensaje_servidor)
@@ -76,6 +80,61 @@ def chat_window(username, grupos):
             mensaje_formateado = f"Agregar Usuario a Grupo:{grupo_seleccionado}:{username}:{usuario}"
             enviar_mensaje_servidor(mensaje_formateado)
 
+    def actualizar():
+        # Limpiar las listas de grupos y mensajes
+        lista_grupos.delete(0, tk.END)
+        lista_mensajes.delete(0, tk.END)
+        #grupos.clear()
+        # Solicitar el archivo BD.txt al servidor
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.connect((SERVER_HOST, SERVER_PORT))
+                s.sendall("Actualizar:".encode())
+
+                # Recibir la longitud del archivo
+                length_bytes = s.recv(4)
+                if not length_bytes:
+                    print("Error al recibir la longitud del archivo")
+                    return
+                length = int.from_bytes(length_bytes, byteorder='big')
+
+                # Recibir el contenido del archivo
+                data = b""
+                remaining = length
+                while remaining > 0:
+                    part = s.recv(min(BUFFER_SIZE, remaining))
+                    if not part:
+                        print("Error al recibir el contenido del archivo")
+                        break
+                    data += part
+                    remaining -= len(part)
+
+                content = data.decode('utf-8')
+                
+                for line in content.split('\n'):
+                    if line:
+                        colon_index = line.find(':')
+                        service = line[:colon_index].strip()
+                        rest_of_line = line[colon_index+1:].strip()
+                        if(service == "Nuevo Grupo"):
+                            nombre_grupo2, user = [x.strip() for x in rest_of_line.split(':')]
+                            if nombre_grupo2:
+                                lista_grupos.insert(tk.END, nombre_grupo2)
+                                grupos[nombre_grupo2] = []
+                        if(service == "Nuevo Mensaje"):
+                            grupo_seleccionado2, user, mensaje2 = [x.strip() for x in rest_of_line.split(':')]
+                            if grupo_seleccionado2 in grupos:
+                                mensaje_formateado = f"{username}:{mensaje2}"
+                                grupos[grupo_seleccionado2].append(mensaje_formateado)
+                                actualizar_mensajes(grupo_seleccionado2)
+                        ##if(service == "Agregar Usuario a Grupo"):
+                            ##var1, var2, var3 = [x.strip() for x in rest_of_line.split(':')]
+
+                        
+
+
+        except Exception as e:
+            print("Error al conectar al servidor:", e)
 
     ventana = tk.Tk()
     ventana.title("Aplicación de Mensajería")
@@ -106,6 +165,9 @@ def chat_window(username, grupos):
     boton_crear_grupo = tk.Button(ventana, text="Crear Grupo", command=crear_grupo)
     boton_crear_grupo.pack(side=tk.BOTTOM, fill=tk.X)
 
+    boton_actualizar = tk.Button(ventana, text="Actualizar", command=actualizar)
+    boton_actualizar.pack(side=tk.BOTTOM, fill=tk.X)
+
     for grupo in grupos.keys():
         lista_grupos.insert(tk.END, grupo)
 
@@ -127,6 +189,7 @@ def main():
     send_button_rect = pygame.Rect(200, 220, 100, 40)
     active_input = False
     active_password = False
+    
 
     while True:
         screen.fill(WHITE)
