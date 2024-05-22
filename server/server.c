@@ -29,9 +29,9 @@ struct User {
 };
 
 struct User users[] = {
-    {"user1", "password1"},
-    {"user2", "password2"},
-    {"user3", "password3"}
+    {"user1", "1234"},
+    {"user2", "1234"},
+    {"user3", "1234"}
 };
 
 int authenticate(char *username, char *password) {
@@ -126,6 +126,23 @@ int main() {
                 if (authenticate(username, password)) {
                     printf("Usuario autenticado: %s\n", username);
                     const char *response = "1"; // Indicador de autenticación exitosa
+
+                    // Abrir el archivo en modo append (añadir al final)
+                    // Usa "w" si deseas sobrescribir el contenido existente
+                    FILE *file = fopen(file_path, "a");
+                    
+                    // Verificar si el archivo se abrió correctamente
+                    if (file == NULL) {
+                        perror("Error al abrir el archivo");
+                        return 1;
+                    }
+                    
+                    // Escribir en el archivo
+                    fprintf(file, "Nuevo Usuario:%s\n", username);
+                    
+                    // Cerrar el archivo
+                    fclose(file);
+
                     send(client_fd, response, strlen(response), 0);
                 } else {
                     printf("Credenciales inválidas para: %s\n", username);
@@ -136,7 +153,7 @@ int main() {
             else if(strcmp(servicio, "Crear Grupo") == 0){
                 char *username = strtok(NULL, ":");
                 char *NombreGrupo = strtok(NULL, ":");
-
+                
                 // Abrir el archivo en modo append (añadir al final)
                 // Usa "w" si deseas sobrescribir el contenido existente
                 FILE *file = fopen(file_path, "a");
