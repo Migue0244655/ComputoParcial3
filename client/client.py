@@ -33,6 +33,29 @@ users = []
 participantes = []
 
 name = ""
+key = "parangaricutirimicuaro"
+
+def sxor_crypt(data, key):
+    key_len = len(key)
+
+    encrypted_data = []
+    for caracter in data:
+        encrypted_data.append(caracter)
+    
+    for i in range(len(encrypted_data)):
+        encrypted_data[i] ^= ord(key[i % key_len])
+    
+    return bytes(encrypted_data)
+
+def xor_crypt(data, key):
+    key_len = len(key)
+
+    encrypted_data = bytearray(data,'ascii')
+    
+    for i in range(len(encrypted_data)):
+        encrypted_data[i] ^= ord(key[i % key_len])
+    
+    return bytes(encrypted_data)
 
 def draw_text(text, font, color, surface, x, y):
     textobj = font.render(text, 1, color)
@@ -82,8 +105,13 @@ def chat_window(username, grupos):
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.connect((SERVER_HOST, SERVER_PORT))
-                s.sendall(mensaje.encode())
+                # Convertir el mensaje a bytes para poder cifrarlo
+                encrypted_message = sxor_crypt(mensaje.encode(), key)
+                s.sendall(encrypted_message)
                 response = s.recv(1024).decode()
+                descifred_response = xor_crypt(response, key)
+                response = descifred_response.decode()
+                print("Recibi: ", response)
                 print("Respuesta del servidor:", response)
         except Exception as e:
             print("Error al conectar al servidor:", e)
@@ -119,7 +147,10 @@ def chat_window(username, grupos):
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.connect((SERVER_HOST, SERVER_PORT))
-                s.sendall("Actualizar:".encode())
+                # Convertir el mensaje a bytes para poder cifrarlo
+                messaje = "Actualizar:"
+                encrypted_message = sxor_crypt(messaje.encode(), key)
+                s.sendall(encrypted_message)
 
                 # Recibir la longitud del archivo
                 length_bytes = s.recv(4)
@@ -253,9 +284,13 @@ def main():
                         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                             s.connect((SERVER_HOST, SERVER_PORT))
                             message = f"Autenticar Usuario:{username}:{password}"
-                            s.sendall(message.encode())
+                            # Convertir el mensaje a bytes para poder cifrarlo
+                            encrypted_message = sxor_crypt(message.encode(), key)
+                            s.sendall(encrypted_message)
                             response = s.recv(1024).decode()
-                            print("Respuesta del servidor:", response)
+                            descifred_response = xor_crypt(response, key)
+                            response = descifred_response.decode()
+                            print("Recibi: ", response)
                             if response == "1":
                                 name = username
                                 chat_window(username, {})

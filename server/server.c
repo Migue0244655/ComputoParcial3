@@ -23,6 +23,27 @@
 #define MAX_CLIENTS 10
 #define BUFFER_SIZE 1024
 
+// Función para cifrar/descifrar usando XOR
+void xor_crypt(char *data, const char *key, int data_len) {
+    int key_len = strlen(key);
+     // Agregar un carácter nulo al final de data si no está presente
+    if (data[data_len] != '\0') {
+        data[data_len] = '\0';
+        data_len++;
+    }
+    char *tempdata;
+    printf("A\n");
+    printf("Data: %s\n", data);
+    strcpy(tempdata,data);
+    printf("B\n");
+    printf("%s\n", tempdata);
+    for (int i = 0; i < data_len; i++) {
+        int tempval=data[i]^key[i % key_len];
+        printf("%d\n", tempval);
+        *(data+i) = (char)tempval;
+    }
+}
+
 struct User {
     char username[32];
     char password[32];
@@ -105,6 +126,9 @@ int main() {
                 continue;
             }
             buffer[bytes_received] = '\0';
+
+            xor_crypt(buffer, "parangaricutirimicuaro", bytes_received);
+
             printf("Recibi: %s\n", buffer);
 
             // Separar el nombre de usuario y la contraseña
@@ -116,16 +140,18 @@ int main() {
 
                 if (username == NULL || password == NULL) {
                     printf("Formato de credenciales inválido\n");
-                    const char *response = "Formato de credenciales inválido";
-                    send(client_fd, response, strlen(response), 0);
-                    close(client_fd);
+
+                    char response[32] = {'F','o','r','m','a','t','o',' ','d','e',' ','c','r','e','d','e','n','c','i','a','l','e','s',' ','i','n','v','á','l','i','d','o'};
+                    char *ptrresponse = &response;
+                    xor_crypt(ptrresponse, "parangaricutirimicuaro", strlen(ptrresponse));
+                    send(client_fd, ptrresponse, strlen(ptrresponse), 0);
                     continue;
                 }
 
                 // Autenticar al usuario
                 if (authenticate(username, password)) {
                     printf("Usuario autenticado: %s\n", username);
-                    const char *response = "1"; // Indicador de autenticación exitosa
+                    char response[1] = {'1'}; // Indicador de autenticación exitosa
 
                     // Abrir el archivo en modo append (añadir al final)
                     // Usa "w" si deseas sobrescribir el contenido existente
@@ -142,12 +168,18 @@ int main() {
                     
                     // Cerrar el archivo
                     fclose(file);
-
-                    send(client_fd, response, strlen(response), 0);
+                    
+                    char *ptrresponse = &response;
+                    printf("antes: %s\n", ptrresponse);
+                    xor_crypt(ptrresponse, "parangaricutirimicuaro", strlen(ptrresponse));
+                    printf("envie: %s\n", ptrresponse);
+                    send(client_fd, ptrresponse, strlen(ptrresponse), 0);
                 } else {
                     printf("Credenciales inválidas para: %s\n", username);
-                    const char *response = "0"; // Indicador de autenticación fallida
-                    send(client_fd, response, strlen(response), 0);
+                    char response[1] = {'0'}; // Indicador de autenticación fallida
+                    char *ptrresponse = &response;
+                    xor_crypt(ptrresponse, "parangaricutirimicuaro", strlen(ptrresponse));
+                    send(client_fd, ptrresponse, strlen(ptrresponse), 0);
                 }
             }
             else if(strcmp(servicio, "Crear Grupo") == 0){
@@ -169,8 +201,17 @@ int main() {
                 
                 // Cerrar el archivo
                 fclose(file);
-                
-                send(client_fd, "creado", strlen("creado"), 0);
+
+                char response[6] = {'c','r','e','a','d','o'};
+                char *ptrresponse = &response;
+                printf("%s\n", ptrresponse);
+                xor_crypt(ptrresponse, "parangaricutirimicuaro", strlen(ptrresponse));
+                printf("%s\n", ptrresponse);
+                xor_crypt(ptrresponse, "parangaricutirimicuaro", strlen(ptrresponse));
+                printf("%s\n", ptrresponse);
+                xor_crypt(ptrresponse, "parangaricutirimicuaro", strlen(ptrresponse));
+                printf("%s\n", ptrresponse);
+                send(client_fd, ptrresponse, strlen(ptrresponse), 0);
             }
             else if(strcmp(servicio, "Agregar Usuario a Grupo") == 0){
                 char *NombreGrupo = strtok(NULL, ":");
@@ -193,7 +234,10 @@ int main() {
                 // Cerrar el archivo
                 fclose(file);
 
-                send(client_fd, "agregado", strlen("agregado"), 0);
+                char response[8] = {'a','g','r','e','g','a','d','o'};
+                char *ptrresponse = &response;
+                xor_crypt(ptrresponse, "parangaricutirimicuaro", strlen(ptrresponse));
+                send(client_fd, ptrresponse, strlen(ptrresponse), 0);
             }
             else if(strcmp(servicio, "Nuevo Mensaje") == 0){
                 char *Grupo = strtok(NULL, ":");
@@ -216,7 +260,10 @@ int main() {
                 // Cerrar el archivo
                 fclose(file);
 
-                send(client_fd, "recibido", strlen("recibido"), 0);
+                char response[8] = {'r','e','c','i','b','i','d','o'};
+                char *ptrresponse = &response;
+                xor_crypt(ptrresponse, "parangaricutirimicuaro", strlen(ptrresponse));
+                send(client_fd, ptrresponse, strlen(ptrresponse), 0);
             }
             else if(strcmp(servicio, "Actualizar") == 0){
                 FILE *file = fopen(file_path, "r");
@@ -243,12 +290,19 @@ int main() {
                 // Leer el archivo y enviarlo al cliente
                 char buffer[BUFFER_SIZE];
                 while (fgets(buffer, BUFFER_SIZE, file) != NULL) {
-                    if (send(client_fd, buffer, strlen(buffer), 0) == -1) {
+                    size_t buffer_len = strlen(buffer);
+                    if (send(client_fd, buffer, buffer_len, 0) == -1) {
                         perror("Error al enviar datos");
                         break;
                     }
                 }
                 fclose(file);
+            }
+            else{
+                char response[11] = {'n','o',' ','s','e','r','v','i','c','i','o'};
+                char *ptrresponse = &response;
+                xor_crypt(ptrresponse, "parangaricutirimicuaro", strlen(ptrresponse));
+                send(client_fd, ptrresponse, strlen(ptrresponse), 0);
             }
 
             close(client_fd);
