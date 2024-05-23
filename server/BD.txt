@@ -1,7 +1,0 @@
-Nuevo Usuario:user1
-Nuevo Grupo:g1:user1
-Nuevo Grupo:g2:user1
-Nuevo Mensaje:g2:user1:holaaaaa
-Nuevo Usuario:user2
-Agregar Usuario a Grupo:g2:user1:user2
-Nuevo Mensaje:g2:user2:holaaaaaaaaaaaaaaaaaaaaaa

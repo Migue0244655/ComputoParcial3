@@ -141,10 +141,10 @@ int main() {
                 if (username == NULL || password == NULL) {
                     printf("Formato de credenciales inválido\n");
 
-                    char response[32] = {'F','o','r','m','a','t','o',' ','d','e',' ','c','r','e','d','e','n','c','i','a','l','e','s',' ','i','n','v','á','l','i','d','o'};
+                    char response[32] = {'F','o','r','m','a','t','o',' ','d','e',' ','c','r','e','d','e','n','c','i','a','l','e','s',' ','i','n','v','a','l','i','d','o'};
                     char *ptrresponse = &response;
-                    xor_crypt(ptrresponse, "parangaricutirimicuaro", strlen(ptrresponse));
-                    send(client_fd, ptrresponse, strlen(ptrresponse), 0);
+                    xor_crypt(ptrresponse, "parangaricutirimicuaro", 32);
+                    send(client_fd, ptrresponse, 32, 0);
                     continue;
                 }
 
@@ -171,15 +171,12 @@ int main() {
                     
                     char *ptrresponse = &response;
                     printf("antes: %s\n", ptrresponse);
-                    xor_crypt(ptrresponse, "parangaricutirimicuaro", strlen(ptrresponse));
+                    xor_crypt(ptrresponse, "parangaricutirimicuaro", 1);
                     printf("envie: %s\n", ptrresponse);
-                    send(client_fd, ptrresponse, strlen(ptrresponse), 0);
+                    send(client_fd, ptrresponse, 1, 0);
                 } else {
                     printf("Credenciales inválidas para: %s\n", username);
-                    char response[1] = {'0'}; // Indicador de autenticación fallida
-                    char *ptrresponse = &response;
-                    xor_crypt(ptrresponse, "parangaricutirimicuaro", strlen(ptrresponse));
-                    send(client_fd, ptrresponse, strlen(ptrresponse), 0);
+                    send(client_fd, "0", strlen("0"), 0);
                 }
             }
             else if(strcmp(servicio, "Crear Grupo") == 0){
@@ -205,13 +202,13 @@ int main() {
                 char response[6] = {'c','r','e','a','d','o'};
                 char *ptrresponse = &response;
                 printf("%s\n", ptrresponse);
-                xor_crypt(ptrresponse, "parangaricutirimicuaro", strlen(ptrresponse));
+                xor_crypt(ptrresponse, "parangaricutirimicuaro", 6);
                 printf("%s\n", ptrresponse);
-                xor_crypt(ptrresponse, "parangaricutirimicuaro", strlen(ptrresponse));
+                xor_crypt(ptrresponse, "parangaricutirimicuaro", 6);
                 printf("%s\n", ptrresponse);
-                xor_crypt(ptrresponse, "parangaricutirimicuaro", strlen(ptrresponse));
+                xor_crypt(ptrresponse, "parangaricutirimicuaro", 6);
                 printf("%s\n", ptrresponse);
-                send(client_fd, ptrresponse, strlen(ptrresponse), 0);
+                send(client_fd, ptrresponse, 6, 0);
             }
             else if(strcmp(servicio, "Agregar Usuario a Grupo") == 0){
                 char *NombreGrupo = strtok(NULL, ":");
@@ -236,8 +233,8 @@ int main() {
 
                 char response[8] = {'a','g','r','e','g','a','d','o'};
                 char *ptrresponse = &response;
-                xor_crypt(ptrresponse, "parangaricutirimicuaro", strlen(ptrresponse));
-                send(client_fd, ptrresponse, strlen(ptrresponse), 0);
+                xor_crypt(ptrresponse, "parangaricutirimicuaro", 8);
+                send(client_fd, ptrresponse, 8, 0);
             }
             else if(strcmp(servicio, "Nuevo Mensaje") == 0){
                 char *Grupo = strtok(NULL, ":");
@@ -262,8 +259,8 @@ int main() {
 
                 char response[8] = {'r','e','c','i','b','i','d','o'};
                 char *ptrresponse = &response;
-                xor_crypt(ptrresponse, "parangaricutirimicuaro", strlen(ptrresponse));
-                send(client_fd, ptrresponse, strlen(ptrresponse), 0);
+                xor_crypt(ptrresponse, "parangaricutirimicuaro", 8);
+                send(client_fd, ptrresponse, 8, 0);
             }
             else if(strcmp(servicio, "Actualizar") == 0){
                 FILE *file = fopen(file_path, "r");
@@ -301,8 +298,8 @@ int main() {
             else{
                 char response[11] = {'n','o',' ','s','e','r','v','i','c','i','o'};
                 char *ptrresponse = &response;
-                xor_crypt(ptrresponse, "parangaricutirimicuaro", strlen(ptrresponse));
-                send(client_fd, ptrresponse, strlen(ptrresponse), 0);
+                xor_crypt(ptrresponse, "parangaricutirimicuaro", 11);
+                send(client_fd, ptrresponse, 11, 0);
             }
 
             close(client_fd);
