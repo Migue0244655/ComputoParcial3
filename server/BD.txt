@@ -1,25 +1,18 @@
+Nuevo Usuario:user1
+Nuevo Usuario:user2
 Nuevo Grupo:g1:user1
 Nuevo Grupo:g2:user1
-Nuevo Mensaje:g2:user1:sxdcfvgbh
-Nuevo Mensaje:g1:user1:wertyujk,m vcfg
-Nuevo Grupo:F3:user1
-Nuevo Mensaje:F3:user1:holaaaaaaaaaa
-Nuevo Mensaje:g2:user1:sutdrfyguyhiujo
-Nuevo Grupo:e2:user1
-Nuevo Grupo:e4:user1
-Agregar Usuario a Grupo:e2:user1:fff
-Nuevo Grupo:e5:user1
-Nuevo Grupo:e6:user1
-Nuevo Grupo:e8:user1
-Agregar Usuario a Grupo:e8:user1:(null)
-Agregar Usuario a Grupo:e8:user1:tt
-Nuevo Grupo:e9:user1
-Nuevo Grupo:e000:user1
-Nuevo Grupo:w1:user1
-Nuevo Grupo:w2:user1
-Nuevo Grupo:w1:user1
-Nuevo Grupo:g2:user1
-Nuevo Grupo:g4:user1
-Nuevo Grupo:t5:user1
-Nuevo Grupo:t8:user1
-Nuevo Mensaje:g2:user1:sedrcftvg hbj
+Nuevo Grupo:g3:user1
+Nuevo Mensaje:g1:user1:hola
+Nuevo Mensaje:g2:user1:hola2
+Nuevo Mensaje:g3:user1:hola3
+Agregar Usuario a Grupo:g1:user1:user2
+Agregar Usuario a Grupo:g3:user1:user2
+Agregar Usuario a Grupo:g2:user1:user2
+Nuevo Mensaje:g1:user2:hola1
+Nuevo Mensaje:g2:user2:hola2
+Nuevo Mensaje:g3:user2:hola3
+Eliminar Grupo:g2
+Nuevo Mensaje:g3:user2:hola3
+Nuevo Mensaje:g1:user2:hola1
+Eliminar Grupo:g3
