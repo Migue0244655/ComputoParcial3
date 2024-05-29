@@ -39,57 +39,6 @@ void xor_crypt(char *data, const char *key, int data_len) {
     }
 }
 
-struct User {
-    char username[32];
-    char password[32];
-};
-
-struct User users[] = {
-    {"user1", "1234"},
-    {"user2", "1234"},
-    {"user3", "1234"}
-};
-
-int authenticate(char *username, char *password) {
-    int numUsers = sizeof(users) / sizeof(struct User);
-    for (int i = 0; i < numUsers; i++) {
-        if (strcmp(username, users[i].username) == 0 && strcmp(password, users[i].password) == 0) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
-// Función para verificar si un usuario ya está autenticado
-bool is_user_authenticated(const char *username) {
-    FILE *file = fopen("usuarios.txt", "r");
-    if (file == NULL) {
-        return false;
-    }
-    char line[32];
-    while (fgets(line, sizeof(line), file)) {
-        // Eliminar el salto de línea al final
-        line[strcspn(line, "\n")] = '\0';
-        if (strcmp(line, username) == 0) {
-            fclose(file);
-            return true;
-        }
-    }
-    fclose(file);
-    return false;
-}
-
-// Función para agregar un usuario autenticado al archivo
-void add_authenticated_user(const char *username) {
-    FILE *file = fopen("usuarios.txt", "a");
-    if (file != NULL) {
-        fprintf(file, "%s\n", username);
-        fclose(file);
-    } else {
-        perror("Error al abrir usuarios.txt");
-    }
-}
-
 int main() {
     int server_fd, client_fd;
     struct sockaddr_in server_addr, client_addr;
@@ -158,70 +107,7 @@ int main() {
 
             // Separar el nombre de usuario y la contraseña
             char *servicio = strtok(buffer, ":");
-            if(strcmp(servicio, "Autenticar Usuario") == 0){
-                char *username = strtok(NULL, ":");
-                char *password = strtok(NULL, ":");
-
-
-                if (username == NULL || password == NULL) {
-                    printf("Formato de credenciales inválido\n");
-
-                    char response[32] = {'F','o','r','m','a','t','o',' ','d','e',' ','c','r','e','d','e','n','c','i','a','l','e','s',' ','i','n','v','a','l','i','d','o'};
-                    char *ptrresponse = &response;
-                    xor_crypt(ptrresponse, "parangaricutirimicuaro", 32);
-                    send(client_fd, ptrresponse, 32, 0);
-                    continue;
-                }
-
-                // Verificar si el usuario ya está autenticado
-                if (is_user_authenticated(username)) {
-                    printf("Usuario ya autenticado: %s\n", username);
-                    // Cambiar el tamaño del array para incluir el carácter nulo
-                    char response[23] = {'U', 's', 'u', 'a', 'r', 'i', 'o', ' ', 'y', 'a', ' ', 'a', 'u', 't', 'e', 'n', 't', 'i', 'c', 'a', 'd', 'o', '\0'};
-                    char *ptrresponse = response;
-                    printf("B\n");
-                    xor_crypt(ptrresponse, "parangaricutirimicuaro", 22); // Aquí parece correcto, pero podrías querer revisar la implementación de xor_crypt
-                    send(client_fd, ptrresponse, 22, 0); // Enviar el tamaño correcto, que ahora es 23}
-                    continue;
-                }
-
-
-                // Autenticar al usuario
-                if (authenticate(username, password)) {
-                    printf("Usuario autenticado: %s\n", username);
-
-                    // Agregar a la lista de usuarios autenticados
-                    add_authenticated_user(username);
-
-                    char response[1] = {'1'}; // Indicador de autenticación exitosa
-
-                    // Abrir el archivo en modo append (añadir al final)
-                    // Usa "w" si deseas sobrescribir el contenido existente
-                    FILE *file = fopen(file_path, "a");
-                    
-                    // Verificar si el archivo se abrió correctamente
-                    if (file == NULL) {
-                        perror("Error al abrir el archivo");
-                        return 1;
-                    }
-                    
-                    // Escribir en el archivo
-                    fprintf(file, "Nuevo Usuario:%s\n", username);
-                    
-                    // Cerrar el archivo
-                    fclose(file);
-                    
-                    char *ptrresponse = &response;
-                    printf("antes: %s\n", ptrresponse);
-                    xor_crypt(ptrresponse, "parangaricutirimicuaro", 1);
-                    printf("envie: %s\n", ptrresponse);
-                    send(client_fd, ptrresponse, 1, 0);
-                } else {
-                    printf("Credenciales inválidas para: %s\n", username);
-                    send(client_fd, "0", strlen("0"), 0);
-                }
-            }
-            else if(strcmp(servicio, "Crear Grupo") == 0){
+            if(strcmp(servicio, "Crear Grupo") == 0){
                 char *username = strtok(NULL, ":");
                 char *NombreGrupo = strtok(NULL, ":");
                 
