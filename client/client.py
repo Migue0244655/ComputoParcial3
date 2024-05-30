@@ -35,6 +35,12 @@ participantes = []
 name = ""
 key = "parangaricutirimicuaro"
 
+def show_warning_message():
+    root = tk.Tk()
+    root.withdraw()  # Ocultar la ventana principal de Tkinter
+    messagebox.showwarning("Advertencia", "Usuario ya esta autenticado. Intenta con otro usuario.")
+    root.destroy()  # Destruir la ventana principal después de mostrar el mensaje
+
 def sxor_crypt(data, key):
     key_len = len(key)
 
@@ -49,12 +55,10 @@ def sxor_crypt(data, key):
 
 def xor_crypt(data, key):
     key_len = len(key)
-
+    print(data)
     encrypted_data = bytearray(data,'ascii')
-    
     for i in range(len(encrypted_data)):
         encrypted_data[i] ^= ord(key[i % key_len])
-    
     return bytes(encrypted_data)
 
 def draw_text(text, font, color, surface, x, y):
@@ -207,8 +211,43 @@ def chat_window(username, grupos):
                                 participantes2 = participantes[indice]
                                 participantes2.append(usuario2)
                                 participantes[indice] = participantes2
+                        elif(service == "Eliminar Grupo"):
+                            grupo_seleccionado2 = rest_of_line
+                            items = lista_grupos.get(0, tk.END)
+                            # Busca el índice del grupo con el nombre especificado
+                            for index, item in enumerate(items):
+                                if item == grupo_seleccionado2:
+                                    # Elimina el grupo del Listbox
+                                    lista_grupos.delete(index)
+                                    # Elimina los mensajes del grupo de la lista de mensajes
+                                    lista_mensajes.delete(0, tk.END)
+                                    # Elimina los mensajes del grupo
+                                    del grupos[grupo_seleccionado2]
+                                    del participantes[index]
+                                    break
         except Exception as e:
             print("Error al conectar al servidor:", e)
+    
+    def eliminar():
+        seleccion = lista_grupos.curselection()
+        grupo_seleccionado = lista_grupos.get(tk.ACTIVE)
+        if grupo_seleccionado in coordinador:
+            if seleccion:
+                # Elimina el grupo del Listbox usando el índice
+                indice_grupo = lista_grupos.get(0, tk.END).index(grupo_seleccionado)
+                lista_grupos.delete(seleccion[0])
+
+                # Elimina los mensajes del grupo de la lista de mensajes
+                lista_mensajes.delete(0, tk.END)
+                
+                # Elimina los mensajes del grupo
+                del grupos[grupo_seleccionado]
+                del participantes[indice_grupo]
+                
+                mensaje_servidor = f"Eliminar Grupo:{grupo_seleccionado}"
+                enviar_mensaje_servidor(mensaje_servidor)
+        else:
+            messagebox.showwarning("Advertencia", "No eres coordinador de este grupo.")
 
     ventana = tk.Tk()
     ventana.title("Aplicación de Mensajería")
@@ -241,6 +280,9 @@ def chat_window(username, grupos):
 
     boton_actualizar = tk.Button(ventana, text="Actualizar", command=actualizar)
     boton_actualizar.pack(side=tk.BOTTOM, fill=tk.X)
+
+    boton_eliminar = tk.Button(ventana, text="Eliminar Grupo", command=eliminar)
+    boton_eliminar.pack(side=tk.BOTTOM, fill=tk.X)
 
     for grupo in grupos.keys():
         lista_grupos.insert(tk.END, grupo)
@@ -281,22 +323,25 @@ def main():
                     active_input = False
                 elif send_button_rect.collidepoint(event.pos):
                     try:
-                        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                            s.connect((SERVER_HOST, SERVER_PORT))
+                        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
                             message = f"Autenticar Usuario:{username}:{password}"
-                            # Convertir el mensaje a bytes para poder cifrarlo
                             encrypted_message = sxor_crypt(message.encode(), key)
-                            s.sendall(encrypted_message)
-                            response = s.recv(1024).decode()
-                            descifred_response = xor_crypt(response, key)
+                            s.sendto(encrypted_message, (SERVER_HOST, 5070))
+                            # Recibir la respuesta del servidor
+                            response, server_address = s.recvfrom(1024)
+                            descifred_response = sxor_crypt(response, key)
                             response = descifred_response.decode()
                             print("Recibi: ", response)
+                            
                             if response == "1":
                                 name = username
                                 chat_window(username, {})
-                                break
+                            elif response == "Usuario ya autenticado":
+                                show_warning_message()
+                    except ConnectionResetError:
+                        print("El servidor se ha cerrado inesperadamente.")
                     except Exception as e:
-                        print("Error al conectar al servidor:", e)
+                        print(f"Error: {e}")
                 else:
                     active_input = False
                     active_password = False
