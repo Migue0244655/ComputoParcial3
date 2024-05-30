@@ -8,7 +8,7 @@
 	Archivos relacionados: num_vocales.h tcpclient.c 
 	Fecha: Febrero 2023
 
-	Compilacion: cc server.c -lnsl -o server
+	Compilacion: cc server2.c -lnsl -o server2
 	Ejecución: ./tcpserver
 */	
 
@@ -57,7 +57,7 @@ int main() {
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = INADDR_ANY;
-    server_addr.sin_port = htons(5060);
+    server_addr.sin_port = htons(5061);
 
     // Vincular el socket al puerto
     if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
@@ -255,6 +255,7 @@ int main() {
                 xor_crypt(ptrresponse, "parangaricutirimicuaro", 11);
                 send(client_fd, ptrresponse, 11, 0);
             }
+
             close(client_fd);
             break;
         }

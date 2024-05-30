@@ -7,6 +7,7 @@ from tkinter import messagebox
 # Configuración del servidor
 SERVER_HOST = "localhost"  # Cambiar a la dirección IP del servidor si es remoto
 SERVER_PORT = 5060
+SERVER_PORT2 = 5061
 BUFFER_SIZE = 1024
 
 # Inicializar Pygame
@@ -106,19 +107,28 @@ def chat_window(username, grupos):
                 messagebox.showwarning("Nombre de grupo ocupado", "Intenta con otro nombre por favor.")
 
     def enviar_mensaje_servidor(mensaje):
-        try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.connect((SERVER_HOST, SERVER_PORT))
-                # Convertir el mensaje a bytes para poder cifrarlo
-                encrypted_message = sxor_crypt(mensaje.encode(), key)
-                s.sendall(encrypted_message)
-                response = s.recv(1024).decode()
-                descifred_response = xor_crypt(response, key)
-                response = descifred_response.decode()
-                print("Recibi: ", response)
-                print("Respuesta del servidor:", response)
-        except Exception as e:
-            print("Error al conectar al servidor:", e)
+        intentos = 0
+        max_intentos = 2
+        conectado = False
+
+        while intentos < max_intentos and not conectado:
+            try:
+                current_port = SERVER_PORT if intentos == 0 else SERVER_PORT2
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.connect((SERVER_HOST, current_port))
+                    conectado = True
+                    print(current_port)
+                    # Convertir el mensaje a bytes para poder cifrarlo
+                    encrypted_message = sxor_crypt(mensaje.encode(), key)
+                    s.sendall(encrypted_message)
+                    response = s.recv(1024).decode()
+                    descifred_response = xor_crypt(response, key)
+                    response = descifred_response.decode()
+                    print("Recibi: ", response)
+                    print("Respuesta del servidor:", response)
+            except Exception as e:
+                print("Error al conectar al servidor:", e)
+                intentos += 1
 
     def agregar_usuario_a_grupo():
         usuario = entrada_usuario.get()
@@ -148,85 +158,93 @@ def chat_window(username, grupos):
         lista_mensajes.delete(0, tk.END)
         #grupos.clear()
         # Solicitar el archivo BD.txt al servidor
-        try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.connect((SERVER_HOST, SERVER_PORT))
-                # Convertir el mensaje a bytes para poder cifrarlo
-                messaje = "Actualizar:"
-                encrypted_message = sxor_crypt(messaje.encode(), key)
-                s.sendall(encrypted_message)
+        intentos = 0
+        max_intentos = 2
+        conectado = False
 
-                # Recibir la longitud del archivo
-                length_bytes = s.recv(4)
-                if not length_bytes:
-                    print("Error al recibir la longitud del archivo")
-                    return
-                length = int.from_bytes(length_bytes, byteorder='big')
+        while intentos < max_intentos and not conectado:
+            try:
+                current_port = SERVER_PORT if intentos == 0 else SERVER_PORT2
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.connect((SERVER_HOST, current_port))
+                    conectado = True
+                    # Convertir el mensaje a bytes para poder cifrarlo
+                    messaje = "Actualizar:"
+                    encrypted_message = sxor_crypt(messaje.encode(), key)
+                    s.sendall(encrypted_message)
 
-                # Recibir el contenido del archivo
-                data = b""
-                remaining = length
-                while remaining > 0:
-                    part = s.recv(min(BUFFER_SIZE, remaining))
-                    if not part:
-                        print("Error al recibir el contenido del archivo")
-                        break
-                    data += part
-                    remaining -= len(part)
+                    # Recibir la longitud del archivo
+                    length_bytes = s.recv(4)
+                    if not length_bytes:
+                        print("Error al recibir la longitud del archivo")
+                        return
+                    length = int.from_bytes(length_bytes, byteorder='big')
 
-                content = data.decode('utf-8')
-                users = []
-                participantes = []
-                for line in content.split('\n'):
-                    if line:
-                        colon_index = line.find(':')
-                        service = line[:colon_index].strip()
-                        rest_of_line = line[colon_index+1:].strip()
-                        if(service == "Nuevo Grupo"):
-                            nombre_grupo2, user = [x.strip() for x in rest_of_line.split(':')]
-                            if nombre_grupo2:
-                                lista_grupos.insert(tk.END, nombre_grupo2)
-                                grupos[nombre_grupo2] = []
-                                participantes2 = []
-                                participantes2.append(user)
-                                participantes.append(participantes2)
-                        elif(service == "Nuevo Mensaje"):
-                            grupo_seleccionado2, user2, mensaje2 = [x.strip() for x in rest_of_line.split(':')]
-                            if grupo_seleccionado2 in grupos:
+                    # Recibir el contenido del archivo
+                    data = b""
+                    remaining = length
+                    while remaining > 0:
+                        part = s.recv(min(BUFFER_SIZE, remaining))
+                        if not part:
+                            print("Error al recibir el contenido del archivo")
+                            break
+                        data += part
+                        remaining -= len(part)
+
+                    content = data.decode('utf-8')
+                    users = []
+                    participantes = []
+                    for line in content.split('\n'):
+                        if line:
+                            colon_index = line.find(':')
+                            service = line[:colon_index].strip()
+                            rest_of_line = line[colon_index+1:].strip()
+                            if(service == "Nuevo Grupo"):
+                                nombre_grupo2, user = [x.strip() for x in rest_of_line.split(':')]
+                                if nombre_grupo2:
+                                    lista_grupos.insert(tk.END, nombre_grupo2)
+                                    grupos[nombre_grupo2] = []
+                                    participantes2 = []
+                                    participantes2.append(user)
+                                    participantes.append(participantes2)
+                            elif(service == "Nuevo Mensaje"):
+                                grupo_seleccionado2, user2, mensaje2 = [x.strip() for x in rest_of_line.split(':')]
+                                if grupo_seleccionado2 in grupos:
+                                    elementos = lista_grupos.get(0, tk.END)
+                                    if grupo_seleccionado2 in elementos:
+                                        indice = elementos.index(grupo_seleccionado2)
+                                        if name in participantes[indice]:
+                                            mensaje_formateado = f"{user2}:{mensaje2}"
+                                            grupos[grupo_seleccionado2].append(mensaje_formateado)
+                                            actualizar_mensajes(grupo_seleccionado2)
+                            elif(service == "Nuevo Usuario"):
+                                usuario = rest_of_line
+                                users.append(usuario)
+                            elif(service == "Agregar Usuario a Grupo"):
+                                nombre_grupo2, username2, usuario2 = [x.strip() for x in rest_of_line.split(':')]
                                 elementos = lista_grupos.get(0, tk.END)
-                                if grupo_seleccionado2 in elementos:
-                                    indice = elementos.index(grupo_seleccionado2)
-                                    if name in participantes[indice]:
-                                        mensaje_formateado = f"{user2}:{mensaje2}"
-                                        grupos[grupo_seleccionado2].append(mensaje_formateado)
-                                        actualizar_mensajes(grupo_seleccionado2)
-                        elif(service == "Nuevo Usuario"):
-                            usuario = rest_of_line
-                            users.append(usuario)
-                        elif(service == "Agregar Usuario a Grupo"):
-                            nombre_grupo2, username2, usuario2 = [x.strip() for x in rest_of_line.split(':')]
-                            elementos = lista_grupos.get(0, tk.END)
-                            if nombre_grupo2 in elementos:
-                                indice = elementos.index(nombre_grupo2)
-                                participantes2 = participantes[indice]
-                                participantes2.append(usuario2)
-                                participantes[indice] = participantes2
-                        elif(service == "Eliminar Grupo"):
-                            grupo_seleccionado2 = rest_of_line
-                            items = lista_grupos.get(0, tk.END)
-                            # Busca el índice del grupo con el nombre especificado
-                            for index, item in enumerate(items):
-                                if item == grupo_seleccionado2:
-                                    # Elimina el grupo del Listbox
-                                    lista_grupos.delete(index)
-                                    # Elimina los mensajes del grupo de la lista de mensajes
-                                    lista_mensajes.delete(0, tk.END)
-                                    # Elimina los mensajes del grupo
-                                    del grupos[grupo_seleccionado2]
-                                    del participantes[index]
-                                    break
-        except Exception as e:
-            print("Error al conectar al servidor:", e)
+                                if nombre_grupo2 in elementos:
+                                    indice = elementos.index(nombre_grupo2)
+                                    participantes2 = participantes[indice]
+                                    participantes2.append(usuario2)
+                                    participantes[indice] = participantes2
+                            elif(service == "Eliminar Grupo"):
+                                grupo_seleccionado2 = rest_of_line
+                                items = lista_grupos.get(0, tk.END)
+                                # Busca el índice del grupo con el nombre especificado
+                                for index, item in enumerate(items):
+                                    if item == grupo_seleccionado2:
+                                        # Elimina el grupo del Listbox
+                                        lista_grupos.delete(index)
+                                        # Elimina los mensajes del grupo de la lista de mensajes
+                                        lista_mensajes.delete(0, tk.END)
+                                        # Elimina los mensajes del grupo
+                                        del grupos[grupo_seleccionado2]
+                                        del participantes[index]
+                                        break
+            except Exception as e:
+                print("Error al conectar al servidor:", e)
+                intentos += 1
     
     def eliminar():
         seleccion = lista_grupos.curselection()
